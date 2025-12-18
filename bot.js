@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const ExnodeClient = require('./exnode');
+const userbot = require('./userbot');
 
 // Product ID to deliverable zip file mapping
 const productDeliverables = {
@@ -18,7 +19,10 @@ const productDeliverables = {
     'ai_instagram_dm_bot': 'ai_instagram_dm_bot.zip',
     'vcam_android_lifetime': null, // Manual delivery (license key)
     'chatgpt_reverse_api': 'chatgpt_reverse_api.zip',
-    'grok_reverse_api': 'grok_reverse_api.zip'
+    'grok_reverse_api': 'grok_reverse_api.zip',
+    'davinci_resolve_pro': null, // Manual delivery (large file)
+    'fl_studio_producer': null, // Manual delivery (large file)
+    'adobe_premiere_pro': null // Manual delivery (large file)
 };
 
 const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
@@ -39,6 +43,10 @@ const exnodeClient = new ExnodeClient(exnodePublicKey, exnodePrivateKey);
 const pendingTransactions = new Map();
 const app = express();
 app.use(bodyParser.json());
+
+// SSN Lookup usage tracking (resets daily)
+const ssnUsageTracker = new Map(); // userId -> { date: 'YYYY-MM-DD', count: number }
+const unlimitedSSNUsers = new Set(); // userIds with unlimited access
 
 // Helper function to escape Markdown special characters
 function escapeMarkdown(text) {
@@ -244,6 +252,73 @@ const softwareProducts = [
             'Conversation Continuation Support'
         ],
         notes: '⚠️ Requires: Python 3.10+, pip install curl-cffi fastapi uvicorn coincurve beautifulsoup4 pydantic colorama. Run python api_server.py to start server on localhost:6969. API endpoint: POST /ask with proxy, message, model, extra_data fields.'
+    },
+    {
+        id: 'davinci_resolve_pro',
+        name: '🎬 DaVinci Resolve Studio 19',
+        price: '$100.00',
+        description: 'Professional video editing, color correction, visual effects, and audio post-production. Industry standard used by Hollywood studios. Full activated version with all features unlocked.',
+        features: [
+            'Advanced Color Grading Tools',
+            '8K Video Editing Support',
+            'Fusion VFX & Motion Graphics',
+            'Fairlight Audio Suite',
+            'Neural Engine AI Tools',
+            'HDR Grading & Dolby Vision',
+            'Multi-user Collaboration',
+            'GPU Accelerated Rendering'
+        ],
+        notes: '⚠️ Activated: Pre-activated installer, Windows 10/11 64-bit required. Install, run, enjoy. No license key needed. Includes all Studio features + neural engine effects.'
+    },
+    {
+        id: 'fl_studio_producer',
+        name: '🎵 FL Studio Producer Edition 21',
+        price: '$100.00',
+        description: 'Professional music production DAW used by top producers worldwide. Full version with lifetime free updates, all plugins unlocked, and VST support.',
+        features: [
+            'Full Producer Edition Features',
+            'Unlimited Audio Tracks',
+            'All Native Plugins Included',
+            'VST/VST3 Support',
+            'Lifetime Free Updates',
+            'Piano Roll & Step Sequencer',
+            'Mixer with Unlimited Tracks',
+            'Audio Recording & Editing'
+        ],
+        notes: '⚠️ Activated: Pre-activated portable version. Extract and run. Works on Windows 10/11. Includes all Producer Edition plugins: Sytrus, Harmor, Gross Beat, and more.'
+    },
+    {
+        id: 'adobe_premiere_pro',
+        name: '🎥 Adobe Premiere Pro 2024',
+        price: '$100.00',
+        description: 'Industry-leading video editing software used by professionals. Full Creative Cloud version with AI-powered features, team collaboration, and seamless Adobe integration.',
+        features: [
+            'AI-Powered Auto Reframe',
+            '8K Native Video Editing',
+            'Lumetri Color Grading',
+            'Essential Graphics Panel',
+            'Multi-cam Editing',
+            'Adobe After Effects Integration',
+            'Team Projects Collaboration',
+            'Speech-to-Text Transcription'
+        ],
+        notes: '⚠️ Activated: Patched installer with GenP activator included. Windows 10/11 64-bit. Disable auto-updates after install. Includes all 2024 features + Sensei AI tools.'
+    },
+    {
+        id: 'ssn_unlimited',
+        name: '🔍 SSN Lookup Unlimited',
+        price: '$150.00',
+        description: 'Unlimited SSN/DOB lookups via TrojanSSN database. Get full personal information including SSN, DOB, addresses, and phone numbers.',
+        features: [
+            'Unlimited Daily Lookups',
+            'SSN + DOB Retrieval',
+            'Full Address History',
+            'Phone Numbers',
+            'JSON Export with Full Results',
+            '2 Free Lookups/Day Included',
+            'Lifetime Access'
+        ],
+        notes: '⚠️ Usage: After purchase, use /ssn Name: FirstName LastName, State: XX to search. Free users get 2 lookups per day.'
     }
 ];
 
@@ -257,10 +332,11 @@ const getMainMenuKeyboard = () => {
                     { text: '⭐ View Vouches', callback_data: 'view_vouches' }
                 ],
                 [
-                    { text: 'ℹ️ About Us', callback_data: 'about_us' },
+                    { text: '🔍 SSN Lookup', callback_data: 'ssn_menu' },
                     { text: '💬 Support', callback_data: 'support' }
                 ],
                 [
+                    { text: 'ℹ️ About Us', callback_data: 'about_us' },
                     { text: '🔒 Terms & Privacy', callback_data: 'terms' }
                 ]
             ]
@@ -304,6 +380,132 @@ Choose an option below to get started:`;
         parse_mode: 'Markdown',
         ...getMainMenuKeyboard()
     });
+});
+
+// Handle /ssn command - Relay to @TrojanSSN_bot via userbot
+bot.onText(/\/ssn(.*)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const input = (match[1] || '').trim();
+
+    if (!input) {
+        // Check current usage for display
+        const today = new Date().toISOString().split('T')[0];
+        const usage = ssnUsageTracker.get(userId);
+        const usedToday = (usage && usage.date === today) ? usage.count : 0;
+        const isUnlimited = unlimitedSSNUsers.has(userId);
+        const remaining = isUnlimited ? '∞' : Math.max(0, 2 - usedToday);
+
+        return bot.sendMessage(chatId, `🔍 *SSN Lookup*
+
+Usage: \`/ssn Name: FirstName LastName, State: XX\`
+
+*Examples:*
+• \`/ssn Name: John Smith, State: CA\`
+• \`/ssn Name: Jane Doe, City: Miami, State: FL\`
+
+📊 *Your Status:* ${isUnlimited ? '✅ Unlimited Access' : `${remaining}/2 free lookups remaining today`}
+
+_Queries the TrojanSSN database for SSN, DOB, addresses._`, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: isUnlimited ? [] : [
+                    [{ text: '🔓 Get Unlimited Access - $150', callback_data: 'purchase_ssn_unlimited' }]
+                ]
+            }
+        });
+    }
+
+    // Parse input: "Name: ..., City: ..., State: ..."
+    const nameMatch = input.match(/Name:\s*([^,]+)/i);
+    const cityMatch = input.match(/City:\s*([^,]+)/i);
+    const stateMatch = input.match(/State:\s*(\w{2})/i);
+
+    if (!nameMatch || !stateMatch) {
+        return bot.sendMessage(chatId, `❌ *Invalid format*
+
+Please use: \`/ssn Name: FirstName LastName, State: XX\`
+
+Example: \`/ssn Name: John Smith, State: CA\``, { parse_mode: 'Markdown' });
+    }
+
+    // Check usage limits
+    const today = new Date().toISOString().split('T')[0];
+    const isUnlimited = unlimitedSSNUsers.has(userId);
+
+    if (!isUnlimited) {
+        const usage = ssnUsageTracker.get(userId);
+        const usedToday = (usage && usage.date === today) ? usage.count : 0;
+
+        if (usedToday >= 2) {
+            return bot.sendMessage(chatId, `⚠️ *Daily Limit Reached*
+
+You've used your 2 free lookups for today.
+
+🔓 *Get Unlimited Access* for just *$150* - one-time payment for lifetime unlimited lookups!`, {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '💳 Purchase Unlimited - $150', callback_data: 'purchase_ssn_unlimited' }],
+                        [{ text: '🔙 Back to Menu', callback_data: 'back_to_main' }]
+                    ]
+                }
+            });
+        }
+    }
+
+    const name = nameMatch[1].trim();
+    const state = stateMatch[1].trim().toUpperCase();
+    const city = cityMatch ? cityMatch[1].trim() : null;
+
+    bot.sendMessage(chatId, `⏳ *Searching...*
+
+🔍 Name: ${name}
+${city ? `🏙️ City: ${city}\n` : ''}📍 State: ${state}
+
+_Please wait, querying database..._`, { parse_mode: 'Markdown' });
+
+    try {
+        // Initialize userbot if not ready
+        if (!userbot.isReady()) {
+            await userbot.initClient();
+        }
+
+        // Query via userbot
+        const result = await userbot.querySSN(name, state, city);
+
+        // Send text result back to user
+        await bot.sendMessage(chatId, `✅ *SSN Lookup Result*
+
+${result.text}`, { parse_mode: 'Markdown' });
+
+        // Send file attachment if present
+        if (result.file && result.fileName) {
+            await bot.sendDocument(chatId, result.file, {
+                caption: '📂 Full results attached'
+            }, {
+                filename: result.fileName,
+                contentType: 'application/json'
+            });
+        }
+
+        // Increment usage counter (only for non-unlimited users)
+        if (!isUnlimited) {
+            const todayDate = new Date().toISOString().split('T')[0];
+            const currentUsage = ssnUsageTracker.get(userId);
+            if (currentUsage && currentUsage.date === todayDate) {
+                currentUsage.count++;
+            } else {
+                ssnUsageTracker.set(userId, { date: todayDate, count: 1 });
+            }
+        }
+
+    } catch (error) {
+        console.error('SSN lookup error:', error);
+        bot.sendMessage(chatId, `❌ *Lookup Failed*
+
+${error.message || 'An error occurred. Please try again later.'}`, { parse_mode: 'Markdown' });
+    }
 });
 
 // Early callback handler removed; unified handler defined later in the file.
@@ -599,6 +801,39 @@ bot.on('callback_query', async (callbackQuery) => {
     if (data === 'back_to_main') return handleBackToMain(chatId);
     if (data.startsWith('product_')) return handleProductDetails(chatId, data.replace('product_', ''));
 
+    // SSN Menu handler
+    if (data === 'ssn_menu') {
+        const userId = callbackQuery.from.id;
+        const today = new Date().toISOString().split('T')[0];
+        const usage = ssnUsageTracker.get(userId);
+        const usedToday = (usage && usage.date === today) ? usage.count : 0;
+        const isUnlimited = unlimitedSSNUsers.has(userId);
+        const remaining = isUnlimited ? '∞' : Math.max(0, 2 - usedToday);
+
+        return bot.sendMessage(chatId, `🔍 *SSN Lookup Service*
+
+Query SSN, DOB, and address information from the TrojanSSN database.
+
+📊 *Your Status:* ${isUnlimited ? '✅ Unlimited Access' : `${remaining}/2 free lookups remaining today`}
+
+*How to use:*
+\`/ssn Name: FirstName LastName, State: XX\`
+
+*Example:*
+\`/ssn Name: John Smith, State: CA\`
+\`/ssn Name: Jane Doe, City: Miami, State: FL\``, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: isUnlimited ? [
+                    [{ text: '🔙 Back to Menu', callback_data: 'back_to_main' }]
+                ] : [
+                    [{ text: '🔓 Get Unlimited Access - $150', callback_data: 'purchase_ssn_unlimited' }],
+                    [{ text: '🔙 Back to Menu', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+    }
+
     // Purchase flow
     if (data.startsWith('purchase_')) {
         const productId = data.replace('purchase_', '');
@@ -720,6 +955,34 @@ bot.on('callback_query', async (callbackQuery) => {
 
                 const product = softwareProducts.find(p => p.id === transaction.productId);
                 const deliverableFile = productDeliverables[transaction.productId];
+
+                // Special handling for SSN Unlimited purchase
+                if (transaction.productId === 'ssn_unlimited') {
+                    unlimitedSSNUsers.add(transaction.chatId);
+                    bot.sendMessage(chatId, `✅ *Payment Confirmed!*
+
+🎉 You now have *Unlimited SSN Lookup Access!*
+
+📦 Product: ${product.name}
+💰 Amount Paid: ${transaction.amount} ${transaction.currency}
+
+🔓 Your access is now *active*. Use \`/ssn\` anytime with no daily limits!
+
+*Example:*
+\`/ssn Name: John Smith, State: CA\`
+
+Thank you for your purchase!`, { parse_mode: 'Markdown' });
+
+                    // Notify admin
+                    if (ADMIN_ID) {
+                        bot.sendMessage(ADMIN_ID, `🎉 SSN UNLIMITED SOLD!
+
+Customer: @${callbackQuery.from.username || 'N/A'} (ID: ${chatId})
+Amount: ${transaction.amount} ${transaction.currency}
+Tracker: ${transaction.trackerId}`);
+                    }
+                    return;
+                }
 
                 let message;
                 if (deliverableFile) {

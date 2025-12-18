@@ -3,6 +3,7 @@ node_modules/
 
 # Environment variables
 .env
+session.txt
 
 # OS generated files
 .DS_Store
