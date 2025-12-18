@@ -1,0 +1,25 @@
+Sign up for X developers, create oAuth2 clientID and clientsecret.
+Buy Ubuntu 22.04 VPS with domain (neccessary)
+Link domain with cloudflare (for SSL and secure DNS)
+Link cloudflare with VPS
+
+When you have Ubuntu server, put the files in /var/www/x (you need to create the x folder)
+Then open putty, connect to the server put these commands:
+
+sudo apt update
+sudo apt upgrade -y
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+cd /var/www/x
+npm install
+node server.js
+
+Then the backend API has started, make sure to change domain and oAuth2 clientid and clientsecret in these files:
+server.js
+tweet.html
+index.html (last line)
+error.html (last line)
+callback.html
+
+------------------------------
+So i'm giving this shit for free because someone scammed with fake mm, lmao. coded this in 20 minutes anyway. that nigga is selling this src for $800, now i'm giving it for free so he can't sell it nomore :)

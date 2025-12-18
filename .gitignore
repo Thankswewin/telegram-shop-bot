@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python virtual environments (from tool folders)
+**/.venv/
+**/__pycache__/
+
+# Git folders in subfolders
+**/.git/
+
+# Temporary files
+*.tmp
+nul

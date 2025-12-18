@@ -1,0 +1,20 @@
+{
+    "bots": [{
+            "name":"Ad 1",
+            "sessionKey":"",
+            "appId": 1,
+            "appHash":""
+        },
+        {
+            "name":"Ad 2",
+            "sessionKey":"",
+            "appId": 1,
+            "appHash":""
+        }],
+
+    "messagesToForward": [
+        "forward link here"
+    ],
+    "interval": 200,
+    "intervalBetweenLoops": 0
+}

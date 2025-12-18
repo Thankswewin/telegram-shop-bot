@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npm install)",
+      "Bash(timeout:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.exnode.io)",
+      "Bash(node debug_exnode:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(del:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic:*)",
+      "WebFetch(domain:my.exnode.io)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Get-Process | Where-Object {$_ProcessName -eq ''node''} {$_ProcessId -eq $_ | Select-Object -First 1 | Stop-Process -Force\")",
+      "Bash(powershell:*)",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
