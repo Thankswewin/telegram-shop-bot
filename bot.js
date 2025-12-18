@@ -25,7 +25,7 @@ const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
 const vouchesChannelUrl = (process.env.VOUCHES_CHANNEL_URL || '#').trim();
 const exnodePublicKey = (process.env.EXNODE_PUBLIC_KEY || '').trim();
 const exnodePrivateKey = (process.env.EXNODE_PRIVATE_KEY || '').trim();
-const exnodeCallbackUrl = (process.env.EXNODE_CALLBACK_URL || '').trim();
+const exnodeCallbackUrl = (process.env.EXNODE_CALLBACK_URL || '').trim().replace(/^=+/, '');
 const ADMIN_ID = (process.env.ADMIN_CHAT_ID || '').trim();
 
 if (!token || !exnodePublicKey || !exnodePrivateKey) {
