@@ -43,7 +43,7 @@ class ExnodeClient {
             amount: amount,
             client_transaction_id: client_transaction_id,
             callback_url: callback_url,
-            merchant_uuid: process.env.MERCHANT_UUID
+            merchant_uuid: (process.env.MERCHANT_UUID || '').trim()
         };
 
         const bodyString = JSON.stringify(body);
@@ -80,7 +80,7 @@ class ExnodeClient {
                 throw error;
             }
         }
-      }
+    }
 
     /**
      * Check transaction status
@@ -137,7 +137,7 @@ class ExnodeClient {
             fiat_currency: "USD",
             client_transaction_id: client_transaction_id,
             payform: true,
-            merchant_uuid: process.env.MERCHANT_UUID,
+            merchant_uuid: (process.env.MERCHANT_UUID || '').trim(),
             call_back_url: callback_url,
             strict_currency: false
         };

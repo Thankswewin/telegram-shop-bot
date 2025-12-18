@@ -21,12 +21,12 @@ const productDeliverables = {
     'grok_reverse_api': 'grok_reverse_api.zip'
 };
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-const vouchesChannelUrl = process.env.VOUCHES_CHANNEL_URL || '#';
-const exnodePublicKey = process.env.EXNODE_PUBLIC_KEY;
-const exnodePrivateKey = process.env.EXNODE_PRIVATE_KEY;
-const exnodeCallbackUrl = process.env.EXNODE_CALLBACK_URL;
-const ADMIN_ID = process.env.ADMIN_CHAT_ID;
+const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+const vouchesChannelUrl = (process.env.VOUCHES_CHANNEL_URL || '#').trim();
+const exnodePublicKey = (process.env.EXNODE_PUBLIC_KEY || '').trim();
+const exnodePrivateKey = (process.env.EXNODE_PRIVATE_KEY || '').trim();
+const exnodeCallbackUrl = (process.env.EXNODE_CALLBACK_URL || '').trim();
+const ADMIN_ID = (process.env.ADMIN_CHAT_ID || '').trim();
 
 if (!token || !exnodePublicKey || !exnodePrivateKey) {
     console.error('Error: TELEGRAM_BOT_TOKEN, EXNODE_PUBLIC_KEY, and EXNODE_PRIVATE_KEY are required in .env file');
