@@ -31,6 +31,7 @@ const exnodePublicKey = (process.env.EXNODE_PUBLIC_KEY || '').trim();
 const exnodePrivateKey = (process.env.EXNODE_PRIVATE_KEY || '').trim();
 const exnodeCallbackUrl = (process.env.EXNODE_CALLBACK_URL || '').trim().replace(/^=+/, '');
 const ADMIN_ID = (process.env.ADMIN_CHAT_ID || '').trim();
+const LOGS_CHANNEL_ID = (process.env.LOGS_CHANNEL_ID || '').trim();
 
 if (!token || !exnodePublicKey || !exnodePrivateKey) {
     console.error('Error: TELEGRAM_BOT_TOKEN, EXNODE_PUBLIC_KEY, and EXNODE_PRIVATE_KEY are required in .env file');
@@ -47,6 +48,29 @@ app.use(bodyParser.json());
 // SSN Lookup usage tracking (resets daily)
 const ssnUsageTracker = new Map(); // userId -> { date: 'YYYY-MM-DD', count: number }
 const unlimitedSSNUsers = new Set(); // userIds with unlimited access
+const knownUsers = new Set(); // Track all users who started the bot
+
+// Activity logging to channel
+function logActivity(type, details) {
+    if (!LOGS_CHANNEL_ID) return;
+
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'UTC' });
+    const emoji = {
+        'NEW_USER': '👤',
+        'SSN_LOOKUP': '🔍',
+        'PURCHASE_STARTED': '🛒',
+        'PAYMENT_CONFIRMED': '💰',
+        'SSN_UNLIMITED_SOLD': '🌟',
+        'ERROR': '❌',
+        'BOT_START': '🚀'
+    }[type] || '📝';
+
+    const message = `${emoji} *${type}*\n\n${details}\n\n🕒 ${timestamp} UTC`;
+
+    bot.sendMessage(LOGS_CHANNEL_ID, message, { parse_mode: 'Markdown' }).catch(err => {
+        console.error('Failed to log to channel:', err.message);
+    });
+}
 
 // Helper function to escape Markdown special characters
 function escapeMarkdown(text) {
@@ -362,6 +386,17 @@ const getSoftwareMenuKeyboard = () => {
 // Handle /start command
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    // Track and log new users
+    if (!knownUsers.has(userId)) {
+        knownUsers.add(userId);
+        logActivity('NEW_USER', `👤 @${msg.from.username || 'N/A'}
+🆔 ID: ${userId}
+📛 Name: ${msg.from.first_name || ''} ${msg.from.last_name || ''}
+📊 Total Users: ${knownUsers.size}`);
+    }
+
     const welcomeMessage = `🎉 *Welcome to samiXmoiz!*
 
 👋 Hello ${msg.from.first_name || 'there'}!
@@ -499,6 +534,12 @@ ${result.text}`, { parse_mode: 'Markdown' });
                 ssnUsageTracker.set(userId, { date: todayDate, count: 1 });
             }
         }
+
+        // Log the lookup
+        const updatedUsage = ssnUsageTracker.get(userId);
+        logActivity('SSN_LOOKUP', `👤 @${msg.from.username || 'N/A'} (${userId})
+🔍 Query: ${name}, ${state}${city ? ', ' + city : ''}
+📊 Status: ${isUnlimited ? '✅ Unlimited' : `${updatedUsage?.count || 1}/2 today`}`);
 
     } catch (error) {
         console.error('SSN lookup error:', error);
@@ -927,6 +968,12 @@ Query SSN, DOB, and address information from the TrojanSSN database.
                     ]
                 }
             });
+
+            // Log purchase started
+            logActivity('PURCHASE_STARTED', `👤 @${callbackQuery.from.username || 'N/A'} (${chatId})
+📦 Product: ${product.name}
+💰 Amount: $${amount} ${currencyCode}
+🔗 Tracker: ${transaction.tracker_id}`);
         } catch (e) {
             console.error('Payment creation failed:', e);
             bot.sendMessage(chatId, '❌ Error generating payment. Please try again later or contact support.');
@@ -972,6 +1019,12 @@ Query SSN, DOB, and address information from the TrojanSSN database.
 \`/ssn Name: John Smith, State: CA\`
 
 Thank you for your purchase!`, { parse_mode: 'Markdown' });
+
+                    // Log to channel
+                    logActivity('SSN_UNLIMITED_SOLD', `🎉 *NEW SALE!*
+👤 @${callbackQuery.from.username || 'N/A'} (${chatId})
+💰 Amount: ${transaction.amount} ${transaction.currency}
+🔗 Tracker: ${transaction.trackerId}`);
 
                     // Notify admin
                     if (ADMIN_ID) {
@@ -1020,6 +1073,14 @@ Thank you for your purchase!`;
                 }
 
                 bot.sendMessage(chatId, message);
+
+                // Log payment confirmed
+                logActivity('PAYMENT_CONFIRMED', `💰 *SALE COMPLETE!*
+👤 @${callbackQuery.from.username || 'N/A'} (${chatId})
+📦 Product: ${product.name}
+💵 Amount: ${transaction.amount} ${transaction.currency}
+🔗 Tracker: ${transaction.trackerId}
+📤 Delivery: ${deliverableFile ? 'Auto' : 'Manual'}`);
 
                 // Auto-send the product file if available
                 if (deliverableFile) {
