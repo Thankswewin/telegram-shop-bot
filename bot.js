@@ -524,8 +524,22 @@ ${result.text}`, { parse_mode: 'Markdown' });
             });
         }
 
-        // Increment usage counter (only for non-unlimited users)
-        if (!isUnlimited) {
+        // Increment usage counter (only for non-unlimited users AND only if results were found)
+        // Check if the result indicates no matches were found
+        const noResultIndicators = [
+            'no results',
+            'no records',
+            'not found',
+            'no matches',
+            'no data',
+            'nothing found',
+            '0 results',
+            '0 records'
+        ];
+        const resultLower = result.text.toLowerCase();
+        const hasResults = !noResultIndicators.some(indicator => resultLower.includes(indicator));
+
+        if (!isUnlimited && hasResults) {
             const todayDate = new Date().toISOString().split('T')[0];
             const currentUsage = ssnUsageTracker.get(userId);
             if (currentUsage && currentUsage.date === todayDate) {
