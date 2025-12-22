@@ -17,7 +17,8 @@ const productDeliverables = {
     'zoomxs_page': 'zoomxs_page.zip',
     'vcam_android_source': null, // Manual delivery
     'ai_instagram_dm_bot': 'ai_instagram_dm_bot.zip',
-    'vcam_android_lifetime': null, // Manual delivery (license key)
+    'vcam_android_lifetime': 'vcam_android_lifetime.zip', // Auto delivery
+    'vcam_ios_lifetime': 'vcam_ios_lifetime.zip', // Auto delivery
     'chatgpt_reverse_api': 'chatgpt_reverse_api.zip',
     'grok_reverse_api': 'grok_reverse_api.zip',
     'davinci_resolve_pro': null, // Manual delivery (large file)
@@ -227,7 +228,7 @@ const softwareProducts = [
     {
         id: 'vcam_android_lifetime',
         name: '📹 VCAM Android (Lifetime)',
-        price: '$600.00',
+        price: '$250.00',
         description: 'Lifetime license for Android Virtual Camera APK. Replace your device camera with video files or RTMP streams. Works with any app - messengers, video calls, verification systems',
         features: [
             'Lifetime License Key',
@@ -242,6 +243,25 @@ const softwareProducts = [
             'Priority Support'
         ],
         notes: '⚠️ Requirements: Android device, activation key provided after purchase. Quick start: Install APK → Enter key → Select video → Enable Replace Camera → Done! Supports RTMP streaming via OBS.'
+    },
+    {
+        id: 'vcam_ios_lifetime',
+        name: '📱 VCAM iOS (Lifetime)',
+        price: '$250.00',
+        description: 'Lifetime license for iOS Virtual Camera using CatVNC. Control your iPhone/iPad from PC via VNC server. Works with rootless jailbreaks - compatible with iOS 14.0 to 16.7.10',
+        features: [
+            'Lifetime License Key',
+            'CatVNC .deb Package (v1.2.0)',
+            'Windows Client Included',
+            'VNC Server for iOS',
+            'Rootless & Rootfull Support',
+            'Works with checkra1n, unc0ver, Taurine',
+            'Control iPhone from PC',
+            'RTMP Streaming Support',
+            'Compatible with Sileo, Zebra, Cydia',
+            'Priority Support'
+        ],
+        notes: '⚠️ Requirements: Jailbroken iOS 14.0-16.7.10, package manager (Sileo/Zebra/Cydia). Setup: Install .deb → Respring → Settings → CatVNC → Enable → Set password → Connect from PC using VNC client (RealVNC, TightVNC).'
     },
     {
         id: 'chatgpt_reverse_api',
@@ -368,13 +388,79 @@ const getMainMenuKeyboard = () => {
     };
 };
 
-// Software menu keyboard
+// Product categories for organized navigation
+const productCategories = [
+    {
+        id: 'vcam',
+        name: '📹 VCAM Products',
+        emoji: '📹',
+        description: 'Virtual Camera solutions for Android & iOS',
+        productIds: ['vcam_android_source', 'vcam_android_lifetime', 'vcam_ios_lifetime']
+    },
+    {
+        id: 'ai_api',
+        name: '🤖 AI & API Tools',
+        emoji: '🤖',
+        description: 'AI-powered automation and reverse APIs',
+        productIds: ['chatgpt_reverse_api', 'grok_reverse_api', 'ai_instagram_dm_bot']
+    },
+    {
+        id: 'telegram',
+        name: '📱 Telegram Tools',
+        emoji: '📱',
+        description: 'Telegram automation and management',
+        productIds: ['ramv_tool', 'telegram_adbot']
+    },
+    {
+        id: 'lookup',
+        name: '🔍 Lookup Tools',
+        emoji: '🔍',
+        description: 'Data lookup and OSINT tools',
+        productIds: ['cbc_autodoxxer', 'ssn_unlimited']
+    },
+    {
+        id: 'editing',
+        name: '🎨 Editing Software',
+        emoji: '🎨',
+        description: 'Professional video & audio production',
+        productIds: ['davinci_resolve_pro', 'fl_studio_producer', 'adobe_premiere_pro']
+    },
+    {
+        id: 'other',
+        name: '💰 Crypto & Other',
+        emoji: '💰',
+        description: 'Crypto tools, OAuth pages & more',
+        productIds: ['cbw_prompter', 'zoomxs_page', 'twilio_p1_bot']
+    }
+];
+
+// Software menu keyboard - now shows categories
 const getSoftwareMenuKeyboard = () => {
-    const keyboard = softwareProducts.map(product => [
-        { text: `${product.name} - ${product.price}`, callback_data: `product_${product.id}` }
+    const keyboard = productCategories.map(cat => [
+        { text: `${cat.name} (${cat.productIds.length})`, callback_data: `category_${cat.id}` }
     ]);
 
     keyboard.push([{ text: '🔙 Back to Main Menu', callback_data: 'back_to_main' }]);
+
+    return {
+        reply_markup: {
+            inline_keyboard: keyboard
+        }
+    };
+};
+
+// Category products keyboard
+const getCategoryProductsKeyboard = (categoryId) => {
+    const category = productCategories.find(c => c.id === categoryId);
+    if (!category) return null;
+
+    const keyboard = category.productIds.map(productId => {
+        const product = softwareProducts.find(p => p.id === productId);
+        if (!product) return null;
+        return [{ text: `${product.name} - ${product.price}`, callback_data: `product_${product.id}` }];
+    }).filter(Boolean);
+
+    keyboard.push([{ text: '🔙 Back to Categories', callback_data: 'browse_software' }]);
 
     return {
         reply_markup: {
@@ -567,15 +653,18 @@ ${error.message || 'An error occurred. Please try again later.'}`, { parse_mode:
 
 // Handle browse software
 function handleBrowseSoftware(chatId) {
-    const message = `🛍️ *Our Software Collection*
+    const message = `🛍️ *Software Shop*
 
-Browse our premium software tools below. Each product comes with:
-• 🔄 Lifetime updates
-• 📧 Instant delivery
-• 💬 24/7 support
-• 🔒 Secure purchase
+Browse our premium tools by category:
 
-Select a product to view details:`;
+📹 *VCAM* - Virtual Camera for Android & iOS
+🤖 *AI & API* - Reverse APIs & automation
+📱 *Telegram* - Automation & management tools
+🔍 *Lookup* - OSINT & data lookup
+🎨 *Editing* - Pro video & audio software
+💰 *Other* - Crypto & utility tools
+
+Select a category below:`;
 
     bot.sendMessage(chatId, message, {
         parse_mode: 'Markdown',
@@ -855,6 +944,32 @@ bot.on('callback_query', async (callbackQuery) => {
     if (data === 'terms') return handleTerms(chatId);
     if (data === 'back_to_main') return handleBackToMain(chatId);
     if (data.startsWith('product_')) return handleProductDetails(chatId, data.replace('product_', ''));
+
+    // Handle category selection
+    if (data.startsWith('category_')) {
+        const categoryId = data.replace('category_', '');
+        const category = productCategories.find(c => c.id === categoryId);
+        if (!category) return;
+
+        const productList = category.productIds.map(pid => {
+            const p = softwareProducts.find(prod => prod.id === pid);
+            return p ? `• ${p.name} - ${p.price}` : null;
+        }).filter(Boolean).join('\n');
+
+        const message = `${category.emoji} *${category.name}*
+
+${category.description}
+
+*Available Products:*
+${productList}
+
+Select a product to view details:`;
+
+        return bot.sendMessage(chatId, message, {
+            parse_mode: 'Markdown',
+            ...getCategoryProductsKeyboard(categoryId)
+        });
+    }
 
     // SSN Menu handler
     if (data === 'ssn_menu') {
