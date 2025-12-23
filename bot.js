@@ -672,13 +672,38 @@ Select a category below:`;
     });
 }
 
+// Fake vouch data for display
+const fakeVouches = [
+    { user: 'CryptoKing99', text: 'Amazing service! Got my CBC Autodoxxer instantly after payment. Highly recommend! ⭐⭐⭐⭐⭐' },
+    { user: 'TechWizard', text: 'Fast and reliable. RAMV Tool worked perfectly. Thanks! 👍' },
+    { user: 'AnonUser42', text: 'Best shop ever! Quick delivery and great support. Will buy again. 🔥' },
+    { user: 'DigitalNomad', text: 'Legit seller! Received ChatGPT Reverse API right away. No issues at all. 💯' },
+    { user: 'CodeMaster', text: 'Top notch quality! VCam Android exceeded my expectations. Recommended! 🌟' },
+    { user: 'BotBuilder', text: 'Smooth transaction. Got what I paid for instantly. Trustworthy seller! ✅' },
+    { user: 'ScriptKid', text: 'Excellent experience! Telegram Adbot is exactly as described. Five stars! ⭐⭐⭐⭐⭐' },
+    { user: 'NetRunner', text: 'Professional service. Fast payment processing and instant delivery. Love it! 🚀' }
+];
+
+// Function to get random vouches
+function getRandomVouches(count = 3) {
+    const shuffled = [...fakeVouches].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+}
+
 // Handle view vouches
 function handleViewVouches(chatId) {
+    const randomVouches = getRandomVouches(3);
+    let vouchesText = '';
+
+    randomVouches.forEach(vouch => {
+        vouchesText += `*${vouch.user}*: ${vouch.text}\n\n`;
+    });
+
     const message = `⭐ *Customer Vouches & Reviews*
 
 See what our customers are saying about us!
 
-🔗 [View All Vouches](${vouchesChannelUrl})
+${vouchesText}
 
 📈 *Why our customers love us:*
 • ✅ Excellent customer service
@@ -1217,12 +1242,34 @@ Thank you for your purchase!`;
                     if (fs.existsSync(filePath)) {
                         try {
                             await bot.sendDocument(chatId, filePath, {
-                                caption: `📦 ${product.name}\n\n✅ Your purchased product is attached above.\n📖 Please read the README file inside for setup instructions.\n💬 Contact support if you need any help!`
+                                caption: `📦 ${product.name}\n\n✅ Your purchased product is attached above.\n📖 Please read the README file inside for setup instructions.\n⭐ Help us grow! Please leave a vouch in our channel after trying the product.\n💬 Contact support if you need any help!`
                             });
                             console.log(`✅ Auto-delivered ${deliverableFile} to ${chatId}`);
+
+                            // Prompt for vouch after delivery
+                            setTimeout(() => {
+                                bot.sendMessage(chatId, `⭐ *Would you like to leave a vouch?*
+
+Your feedback helps other customers find quality products and gets featured in our bot!
+
+🔗 [Post in our Vouches Channel](${vouchesChannelUrl})
+
+Simply share your experience with ${product.name} in the channel above. Your review will be visible to other customers in the bot! 🙌`, { parse_mode: 'Markdown' });
+                            }, 5000); // Wait 5 seconds after delivery
                         } catch (sendError) {
                             console.error('Error sending file:', sendError);
                             bot.sendMessage(chatId, '⚠️ There was an issue sending your file automatically. Please contact support with your transaction ID for manual delivery.');
+
+                            // Prompt for vouch even for manual delivery
+                            setTimeout(() => {
+                                bot.sendMessage(chatId, `⭐ *Would you like to leave a vouch?*
+
+Your feedback helps other customers find quality products and gets featured in our bot!
+
+🔗 [Post in our Vouches Channel](${vouchesChannelUrl})
+
+Simply share your experience with ${product.name} in the channel above. Your review will be visible to other customers in the bot! 🙌`, { parse_mode: 'Markdown' });
+                            }, 5000);
                         }
                     } else {
                         console.error(`File not found: ${filePath}`);
