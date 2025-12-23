@@ -672,57 +672,110 @@ Select a category below:`;
     });
 }
 
-// Fake vouch data for display
-const fakeVouches = [
-    { user: 'CryptoKing99', text: 'Amazing service! Got my CBC Autodoxxer instantly after payment. Highly recommend! ⭐⭐⭐⭐⭐' },
-    { user: 'TechWizard', text: 'Fast and reliable. RAMV Tool worked perfectly. Thanks! 👍' },
-    { user: 'AnonUser42', text: 'Best shop ever! Quick delivery and great support. Will buy again. 🔥' },
-    { user: 'DigitalNomad', text: 'Legit seller! Received ChatGPT Reverse API right away. No issues at all. 💯' },
-    { user: 'CodeMaster', text: 'Top notch quality! VCam Android exceeded my expectations. Recommended! 🌟' },
-    { user: 'BotBuilder', text: 'Smooth transaction. Got what I paid for instantly. Trustworthy seller! ✅' },
-    { user: 'ScriptKid', text: 'Excellent experience! Telegram Adbot is exactly as described. Five stars! ⭐⭐⭐⭐⭐' },
-    { user: 'NetRunner', text: 'Professional service. Fast payment processing and instant delivery. Love it! 🚀' }
+// Advanced Vouch System Data
+const vouchData = [
+    { name: 'CryptoKing99', product: 'CBC Autodoxxer', rating: 5, text: 'Amazing service! Got the results instantly. This tool is a game changer for my research.' },
+    { name: 'TechWizard', product: 'RAMV Tool', rating: 5, text: 'Fast and reliable. The multi-session management is flawless. Thanks!' },
+    { name: 'AnonUser42', product: 'ChatGPT Reverse API', rating: 5, text: 'Legit seller! Received API access right away. No issues at all.' },
+    { name: 'DigitalNomad', product: 'VCam Android', rating: 5, text: 'Works perfectly on my Pixel 7. Support helped me set it up in minutes.' },
+    { name: 'CodeMaster', product: 'Telegram Adbot', rating: 4, text: 'Great bot for marketing. A bit complex to setup but works like a charm once running.' },
+    { name: 'BotBuilder', product: 'Twilio P1 Bot', rating: 5, text: 'Exactly what I needed. The API server is very responsive.' },
+    { name: 'ScriptKid', product: 'Grok Reverse API', rating: 5, text: 'Instant access to Grok! This is huge. Highly recommended.' },
+    { name: 'NetRunner', product: 'SSN Lookup Unlimited', rating: 5, text: 'Worth every penny. The unlimited access saves me so much money compared to per-lookup sites.' },
+    { name: 'GhostProtocol', product: 'CBW Prompter', rating: 5, text: 'Very professional tool. The encryption works exactly as described.' },
+    { name: 'AlphaWolf', product: 'DaVinci Resolve Pro', rating: 5, text: 'Full studio version working 100%. No cracks or viruses, just clean install.' },
+    { name: 'PixelPusher', product: 'Adobe Premiere Pro', rating: 5, text: 'Saved me a subscription! Works perfectly with my existing projects.' },
+    { name: 'SoundWave', product: 'FL Studio', rating: 5, text: 'All plugins loaded correctly. Making beats right away. Cheers!' },
+    { name: 'DataMiner', product: 'CBC Autodoxxer', rating: 4, text: 'Good data quality. Proxy support is a nice touch.' },
+    { name: 'SocialGuru', product: 'AI Instagram Bot', rating: 5, text: 'My engagement skyrocketed. The AI responses feel very human.' },
+    { name: 'HackerPro', product: 'VCam iOS', rating: 5, text: 'Finally a working VCam for iOS 16! Jailbreak setup was easy with the guide.' }
 ];
 
-// Function to get random vouches
-function getRandomVouches(count = 3) {
-    const shuffled = [...fakeVouches].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+// Helper to get paginated vouches
+function getVouchesPage(page = 1, perPage = 3) {
+    const totalPages = Math.ceil(vouchData.length / perPage);
+    // Ensure page is within bounds
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+
+    const start = (page - 1) * perPage;
+    const end = start + perPage;
+    const pageVouches = vouchData.slice(start, end);
+
+    // Generate dynamic "fresh" dates so vouches always look active
+    const datedVouches = pageVouches.map((v, i) => {
+        // Pseudo-random logic to keep dates consistent for the same page view but looking "real"
+        // Page 1 is recent (hours), Page 2 is days, etc.
+        const baseOffset = (page - 1) * 24; // 24 hours per page back
+        const randomjitter = (v.name.length % 5); // Deterministic "random" based on name length
+        const hoursAgo = baseOffset + (i * 4) + randomjitter;
+
+        let timeString;
+        if (hoursAgo < 1) timeString = 'Just now';
+        else if (hoursAgo < 24) timeString = `${Math.floor(hoursAgo)} hours ago`;
+        else timeString = `${Math.floor(hoursAgo / 24)} days ago`;
+
+        return { ...v, date: timeString };
+    });
+
+    return { vouches: datedVouches, totalPages, currentPage: page };
 }
 
-// Handle view vouches
-function handleViewVouches(chatId) {
-    const randomVouches = getRandomVouches(3);
-    let vouchesText = '';
-
-    randomVouches.forEach(vouch => {
-        vouchesText += `*${vouch.user}*: ${vouch.text}\n\n`;
+// Format vouches into a nice message
+function formatVouchMessage(vouches) {
+    let text = '';
+    vouches.forEach(v => {
+        text += `🌟 *${'⭐'.repeat(v.rating)}*\n`;
+        text += `👤 *${v.name}* (Verified Buyer ✅)\n`;
+        text += `📦 Product: _${v.product}_\n`;
+        text += `💬 "${v.text}"\n`;
+        text += `🕒 _${v.date}_\n\n`;
     });
+    return text;
+}
 
-    const message = `⭐ *Customer Vouches & Reviews*
+// Updated Handle View Vouches with Pagination
+function handleViewVouches(chatId, messageId = null, page = 1) {
+    const { vouches, totalPages, currentPage } = getVouchesPage(page);
+    const vouchesText = formatVouchMessage(vouches);
 
-See what our customers are saying about us!
+    const message = `🏆 *Customer Success Stories*
+    
+Here is what our verified customers are saying about our products:
 
-${vouchesText}
+${vouchesText}Page ${currentPage} of ${totalPages} 📄`;
 
-📈 *Why our customers love us:*
-• ✅ Excellent customer service
-• ✅ High-quality products
-• ✅ Fast delivery
-• ✅ Great value for money
+    const buttons = [];
+    const navigationRow = [];
 
-Join hundreds of satisfied customers today!`;
+    if (currentPage > 1) {
+        navigationRow.push({ text: '⬅️ Previous', callback_data: `vouches_page_${currentPage - 1}` });
+    }
+    if (currentPage < totalPages) {
+        navigationRow.push({ text: 'Next ➡️', callback_data: `vouches_page_${currentPage + 1}` });
+    }
 
-    bot.sendMessage(chatId, message, {
+    if (navigationRow.length > 0) buttons.push(navigationRow);
+    buttons.push([{ text: '🔙 Back to Main Menu', callback_data: 'back_to_main' }]);
+
+    const options = {
         parse_mode: 'Markdown',
-        reply_markup: {
-            inline_keyboard: [
-                [
-                    { text: '🔙 Back to Main Menu', callback_data: 'back_to_main' }
-                ]
-            ]
-        }
-    });
+        reply_markup: { inline_keyboard: buttons }
+    };
+
+    if (messageId) {
+        // Edit existing message for smooth navigation
+        bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            ...options
+        }).catch(() => {
+            // If edit fails (e.g., same content), do nothing or generic error handling
+        });
+    } else {
+        // Send new message
+        bot.sendMessage(chatId, message, options);
+    }
 }
 
 // Handle about us
@@ -964,6 +1017,10 @@ bot.on('callback_query', async (callbackQuery) => {
     // Handle main menu actions
     if (data === 'browse_software') return handleBrowseSoftware(chatId);
     if (data === 'view_vouches') return handleViewVouches(chatId);
+    if (data.startsWith('vouches_page_')) {
+        const page = parseInt(data.replace('vouches_page_', ''));
+        return handleViewVouches(chatId, callbackQuery.message.message_id, page);
+    }
     if (data === 'about_us') return handleAboutUs(chatId);
     if (data === 'support') return handleSupport(chatId);
     if (data === 'terms') return handleTerms(chatId);
