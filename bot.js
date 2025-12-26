@@ -21,6 +21,7 @@ const productDeliverables = {
     'vcam_ios_lifetime': 'vcam_ios_lifetime.zip', // Auto delivery
     'chatgpt_reverse_api': 'chatgpt_reverse_api.zip',
     'grok_reverse_api': 'grok_reverse_api.zip',
+    'sypha_realtime': 'sypha_realtime.zip',
     'davinci_resolve_pro': null, // Manual delivery (large file)
     'fl_studio_producer': null, // Manual delivery (large file)
     'adobe_premiere_pro': null // Manual delivery (large file)
@@ -298,6 +299,23 @@ const softwareProducts = [
         notes: '⚠️ Requires: Python 3.10+, pip install curl-cffi fastapi uvicorn coincurve beautifulsoup4 pydantic colorama. Run python api_server.py to start server on localhost:6969. API endpoint: POST /ask with proxy, message, model, extra_data fields.'
     },
     {
+        id: 'sypha_realtime',
+        name: '🎭 Sypha Realtime',
+        price: '$250.00',
+        description: 'Advanced real-time portrait animation tool powered by AI. Transform static images into lifelike animated videos with facial expressions, head movements, and lip-sync capabilities.',
+        features: [
+            'Real-time Portrait Animation',
+            'AI-Powered Facial Expressions',
+            'Head Movement Tracking',
+            'Lip-Sync Capabilities',
+            'Webcam Live Mode',
+            'Offline Video Processing',
+            'TensorRT Optimization',
+            'Multiple Output Formats'
+        ],
+        notes: '⚠️ Requires: Python 3.x, NVIDIA GPU with CUDA support. Setup: Install requirements from requirements_base.txt, download pretrained weights. Run inference_online.py for webcam mode or inference_offline.py for video processing.'
+    },
+    {
         id: 'davinci_resolve_pro',
         name: '🎬 DaVinci Resolve Studio 19',
         price: '$100.00',
@@ -402,7 +420,7 @@ const productCategories = [
         name: '🤖 AI & API Tools',
         emoji: '🤖',
         description: 'AI-powered automation and reverse APIs',
-        productIds: ['chatgpt_reverse_api', 'grok_reverse_api', 'ai_instagram_dm_bot']
+        productIds: ['chatgpt_reverse_api', 'grok_reverse_api', 'ai_instagram_dm_bot', 'sypha_realtime']
     },
     {
         id: 'telegram',
